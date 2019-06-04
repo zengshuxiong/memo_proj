@@ -1,0 +1,34 @@
+Sub test1()
+
+    Dim fso, f, path, of1
+    Dim idx
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set f = fso.opentextfile("list.txt", 1)
+    
+    'object.OpenTextFile(filename[, iomode[, create[, format]]])
+    
+    Set of1 = fso.opentextfile("excel.txt", 2, True)
+    
+    Do While f.atendofstream <> True
+    
+     path = f.ReadLine
+     idx = InStrRev(path, ".")
+     
+     If idx > 0 Then
+        If LCase(Mid(path, idx, 3)) = ".xl" Then
+        
+           of1.WriteLine path
+           
+        End If
+     End If
+    
+    
+    Loop
+    
+    f.Close
+    of1.Close
+     
+End Sub
+
+test1
