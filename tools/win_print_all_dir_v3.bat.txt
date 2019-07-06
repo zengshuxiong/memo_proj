@@ -1,0 +1,77 @@
+@echo off
+SETLOCAL ENABLEDELAYEDEXPANSION
+
+
+set input=%~dp0
+REM set input=D:\tmp
+
+set cur_dir=%~dp0
+set result=list_dirs.txt
+set output="%cur_dir%\%result%"
+
+echo save to file: %output%
+
+echo %input%> %output%
+rem dir /b /a-d "%input%">>%output% 2>nul
+
+rem 上一个目录的文件个数
+set /a last_count=0
+rem for /f "delims=" %%i in ('dir /b /a-d "%input%" 2^>nul ^| find /c "." ') do set /a last_count=%%i
+
+echo Reading PATH : %input%
+for /f "delims=" %%i in ('dir /b /a-d "%input%" 2^>nul') do (
+ set /a last_count+=1
+ echo. - %%i>>%output%
+)
+
+rem --------------
+rem start for sub-folders
+rem --------------
+
+for /f "delims=" %%i in ('dir /s /b /a:d "%input%" 2^>nul') do (
+ pushd %%i
+ echo Reading PATH : %%i
+ 
+ rem .代表空
+ rem echo.>>%output%
+ if !last_count! GEQ 1 echo.>>%output%
+ 
+ echo %%i>>%output%
+ 
+ rem dir /b /a-d %%i>>%output% 2>nul
+ rem echo. AAA 代表AAA前面要有空格
+ 
+ rem 当前目录的文件个数
+ set /a count=0
+ 
+ for /f "delims=" %%j in ('dir /b /a-d "%%i" 2^>nul') do (
+    set /a count=!count! + 1
+	REM echo count is !count!
+
+	echo. - %%j>>%output%
+	REM echo. !count!: %%j>>%output%
+ )
+
+ set /a last_count=!count!
+ popd
+)
+
+rem --------------
+rem end for.
+rem --------------
+
+rem :: %%~nxi只显示文件名,%%i显示带路径的文件信息
+rem  for /f "delims=" %%i in ('dir /s /b /a:d "%input%"') do (
+rem   echo %%~nxi
+rem   echo %%i>>%output%
+rem  )
+
+cd /d %cur_dir%
+if not exist %result% goto no_file
+start %result%
+exit
+
+:no_file
+echo failed to find file: %result%
+
+pause
