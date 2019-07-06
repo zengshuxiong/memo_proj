@@ -1,0 +1,7 @@
+set dest=d:\your_path\
+set rs_path=%~dp0%\result.txt
+
+cd /d %dest%
+dir /s /b /a-d .>%rs_path%
+
+pause
