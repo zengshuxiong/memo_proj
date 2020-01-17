@@ -9,7 +9,9 @@ Sub PrintTitles() ''本段过程用于取得文中的题目（赋值给ar）与�
     preNumCode = ""
     
     Dim para
-    
+    Open "c:\tmp\titles.txt" For Output As 1
+    Dim text As String
+
     For Each y1 In ActiveDocument.Paragraphs
         x = x + 1
         t = ActiveDocument.Paragraphs(x).Style
@@ -26,10 +28,14 @@ Sub PrintTitles() ''本段过程用于取得文中的题目（赋值给ar）与�
             
             'y = y + 1 ''本变量用于确定是否循环到了下一个标题开始的地方。
             
-            Debug.Print Strings.Space(title_level * 4 - 3) & " " & preNumCode & " " & ar
-        
+            'Debug.Print Strings.Space(title_level * 4 - 3) & " " & preNumCode & " " & ar
+            text = Strings.Space(title_level * 4 - 3) & " " & preNumCode & " " & ar
+            Print #1, text
         End If
     Next
+    
+    Close #1
+    MsgBox "finished."
 End Sub
 
 
