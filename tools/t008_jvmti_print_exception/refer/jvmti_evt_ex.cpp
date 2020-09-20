@@ -1,19 +1,21 @@
 // 这是主 DLL 文件。
-
+// 来自项目： https://github.com/gittorlight/java-other
+//
 #include "stdafx.h"
 
-#ifdef USE_C_VERSION
+#ifdef USE_CPP_VERSION
 
-#include "jvmti_print_exept.h"
+#include "jvmti_evt_ex.h"
 #include <stdio.h>
 #include <memory.h>
 #include <string.h>
 #include "jvmti.h"
 
+
 void printStackTrace(JNIEnv* env, jobject exception) {
-	jclass throwable_class = (**env).FindClass(env, "java/lang/Throwable");
-	jmethodID print_method = (**env).GetMethodID(env, throwable_class, "printStackTrace", "()V");
-	(**env).CallVoidMethod(env, exception, print_method);
+	jclass throwable_class = (*env).FindClass("java/lang/Throwable");
+	jmethodID print_method = (*env).GetMethodID(throwable_class, "printStackTrace", "()V");
+	(*env).CallVoidMethod(exception, print_method);
 }
 
 void JNICALL Callback_JVMTI_EVENT_EXCEPTION (jvmtiEnv *jvmti_env,
@@ -25,46 +27,43 @@ void JNICALL Callback_JVMTI_EVENT_EXCEPTION (jvmtiEnv *jvmti_env,
 	jmethodID catch_method,
 	jlocation catch_location) {
 
-	printf("\n// Entering method Callback_JVMTI_EVENT_EXCEPTION.\n");
-	char* class_name = NULL;
+	printf("loaded class name=%s\n ", "run in Callback_JVMTI_EVENT_EXCEPTION method");
+	char* class_name;
 
-	jclass exception_class = (*jni_env)->GetObjectClass(jni_env, exception);
-	(*jvmti_env)->GetClassSignature(jvmti_env, exception_class, &class_name, NULL);
-	printf("Exception ClassSignature: %s\n", class_name);	
-	
-	(*jvmti_env)->Deallocate(jvmti_env, class_name);
+	jclass exception_class = jni_env->GetObjectClass(exception);
+	jvmti_env->GetClassSignature(exception_class, &class_name, NULL);
+	printf("Exception: %s\n", class_name);	
+
 	printStackTrace(jni_env, exception);
 }
 
 
-//void JNICALL Callback_JVMTI_EVENT_Exception_Catch (jvmtiEnv *jvmti_env,
-//	JNIEnv* jni_env,
-//	jthread thread,
-//	jmethodID method,
-//	jlocation location,
-//	jobject exception)	{
-//
-//	char* class_name = NULL;
-//	jclass exception_class = (*jni_env)->GetObjectClass(jni_env, exception);
-//	(*jvmti_env)->GetClassSignature(jni_env, exception_class, &class_name, NULL);
-//	printf("Exception: %s\n", class_name);	
-//	(*jvmti_env)->Deallocate(jvmti_env, class_name);
-//
-//	printStackTrace(jni_env, exception);	
-//}
+void JNICALL Callback_JVMTI_EVENT_Exception_Catch (jvmtiEnv *jvmti_env,
+	JNIEnv* jni_env,
+	jthread thread,
+	jmethodID method,
+	jlocation location,
+	jobject exception)	{
+
+	char* class_name;
+	jclass exception_class = jni_env->GetObjectClass(exception);
+	jvmti_env->GetClassSignature(exception_class, &class_name, NULL);
+	printf("Exception: %s\n", class_name);	
+
+	printStackTrace(jni_env, exception);	
+}
 
 
-JNIEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options, void *reserved)
-{
+JNIEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options, void *reserved){
 	jvmtiEnv *jvmti = NULL;
 
-	fprintf(stderr, "-- USEING C LIB agent... --\n");
-	fprintf(stderr, "\n// Entering Agent_OnLoad ( ).\n");
+	fprintf(stderr, "-- USEING C++ LIB agent... --\n");
+	fprintf(stderr,"agent onload\n");
 
 	//获取JVMTI environment
-	jint erno = (*vm)->GetEnv(vm, (void **)&jvmti, JVMTI_VERSION_1_1);
+	jint erno = vm->GetEnv((void **)&jvmti, JVMTI_VERSION_1_1);
 	if (erno != JNI_OK) {
-		fprintf(stderr, "ERROR: Couldn't get JVMTI environment\n");
+		fprintf(stderr, "ERROR: Couldn't get JVMTI environment");
 		return JNI_ERR;
 	}
 	
@@ -73,9 +72,9 @@ JNIEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options, void *reserved)
 	(void)memset(&capabilities, 0, sizeof(jvmtiCapabilities));
 	capabilities.can_generate_exception_events=1;
 
-	jvmtiError error = (*jvmti)->AddCapabilities(jvmti, &capabilities);
+	jvmtiError error = jvmti->AddCapabilities(&capabilities);
 	if(error != JVMTI_ERROR_NONE) {
-		fprintf(stderr, "ERROR: Unable to AddCapabilities JVMTI\n");
+		fprintf(stderr, "ERROR: Unable to AddCapabilities JVMTI");
 		return  error;
 	}
 
@@ -102,14 +101,14 @@ JNIEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options, void *reserved)
 	//设置JVM事件 (JVMTI_EVENT_EXCEPTION) 回调
 	jvmtiEventCallbacks ex_callbacks;
 	ex_callbacks.Exception = &Callback_JVMTI_EVENT_EXCEPTION;
-	error = (*jvmti)->SetEventCallbacks(jvmti, &ex_callbacks, (jint)sizeof(ex_callbacks));
+	error = jvmti->SetEventCallbacks(&ex_callbacks, (jint)sizeof(ex_callbacks));
 	if(error != JVMTI_ERROR_NONE) {
 		fprintf(stderr, "ERROR: Unable to SetEventCallbacks JVMTI!\n");		
 		return error;
 	}
 
 	//设置事件通知
-	error = (*jvmti)->SetEventNotificationMode(jvmti,JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION, (jthread)NULL);
+	error = jvmti->SetEventNotificationMode(JVMTI_ENABLE, JVMTI_EVENT_EXCEPTION, (jthread)NULL);
 	if(error != JVMTI_ERROR_NONE) {
 		fprintf(stderr, " ERROR: Unable to SetEventNotificationMode JVMTI!,the error code=%d\n",error);
 		return  error;
@@ -119,10 +118,9 @@ JNIEXPORT jint JNICALL Agent_OnLoad(JavaVM *vm, char *options, void *reserved)
 }
 
 JNIEXPORT jint JNICALL
-	Agent_OnAttach(JavaVM* vm, char *options, void *reserved)
-{
+	Agent_OnAttach(JavaVM* vm, char *options, void *reserved){
 		//do nothing
-	fprintf(stderr, "\n// Entering Agent_OnAttach ( ).\n");
+		
 	return JNI_OK;
 }
 
